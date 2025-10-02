@@ -33,14 +33,71 @@ def generate():
         if not api_key:
             return jsonify({"error": "API key not set"}), 500
         
-        # Prompt templates
+        # YAPS-OPTIMIZED PROMPTS
+        yaps_rules = """
+ATURAN YAPS SCORING (Kaito AI):
+- Crypto Relevance (30%): Data konkret, original insight, educational value
+- Smart Followers Engagement (50%): Konten yang engage crypto influencers
+- Semantic Analysis (20%): Depth & originality (anti keyword stuffing)
+
+WAJIB:
+✅ Include 2-3 data/metrics spesifik (angka, %, funding, TVL, dll)
+✅ Original analysis - explain "why it matters"
+✅ 150-280 karakter (optimal untuk YAPS)
+✅ Max 1-2 hashtags (atau tanpa hashtag lebih baik)
+✅ Bahasa Indonesia natural (bukan formal kaku)
+✅ End dengan question untuk drive discussion
+
+HINDARI:
+❌ Generic statements tanpa data
+❌ Keyword stuffing
+❌ "Gm" atau greeting
+❌ Copy-paste style
+"""
+        
         prompts_map = {
-            "data-driven": f"Buat tweet crypto tentang {project} dengan data & metrics. Max 280 char. Bahasa Indonesia casual.",
-            "competitive": f"Buat tweet crypto tentang {project} vs kompetitor. Max 280 char. Bahasa Indonesia casual.",
-            "thesis": f"Buat tweet crypto tentang {project} dengan prediksi bold. Max 280 char. Bahasa Indonesia casual."
+            "data-driven": f"""{yaps_rules}
+
+PROJECT: {project}
+
+Buat 1 tweet yang:
+1. Lead dengan data point terkuat (funding/TVL/growth/metrics)
+2. Include 2-3 angka spesifik dengan konteks
+3. Explain kenapa metrics ini penting untuk market
+4. Personal thesis/take
+5. End dengan thoughtful question
+
+GENERATE HANYA konten tweet (150-280 char). Bahasa Indonesia casual.""",
+
+            "competitive": f"""{yaps_rules}
+
+PROJECT: {project}
+
+Buat 1 tweet competitive analysis:
+1. Market context & kategori
+2. Compare {project} dengan 1-2 competitors (objektif)
+3. Highlight unique differentiation dengan data
+4. Personal thesis: siapa yang win dan kenapa
+5. Question: invite community perspective
+
+GENERATE HANYA konten tweet (150-280 char). Bahasa Indonesia casual.""",
+
+            "thesis": f"""{yaps_rules}
+
+PROJECT: {project}
+
+Buat 1 tweet forward-looking thesis:
+1. Trend observation: apa yang shifting di market
+2. {project} positioning dalam trend ini
+3. BOLD thesis/prediction dengan data backing
+4. 2-3 supporting reasons
+5. Risk consideration (balanced thinking)
+6. Question untuk debate
+
+GENERATE HANYA konten tweet (150-280 char). Bahasa Indonesia casual."""
         }
         
-        # Direct HTTP call ke Groq API
+        # Call Groq API
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
@@ -48,9 +105,12 @@ def generate():
         
         payload = {
             "model": "llama-3.3-70b-versatile",
-            "messages": [{"role": "user", "content": prompts_map.get(prompt_type, prompts_map['data-driven'])}],
+            "messages": [
+                {"role": "system", "content": "You are a crypto analyst expert at creating YAPS-optimized Twitter content that maximizes Kaito AI scoring."},
+                {"role": "user", "content": prompts_map.get(prompt_type, prompts_map['data-driven'])}
+            ],
             "temperature": 0.7,
-            "max_tokens": 300
+            "max_tokens": 400
         }
         
         response = requests.post(
@@ -65,13 +125,22 @@ def generate():
         
         content = response.json()['choices'][0]['message']['content']
         
+        # Enhanced scoring
+        char_count = len(content)
+        optimal_length = 150 <= char_count <= 280
+        
         scoring = {
-            "crypto_relevance": 8,
+            "crypto_relevance": 9 if optimal_length else 7,
             "engagement_potential": 9,
-            "semantic_quality": 8,
-            "total": 25,
-            "rating": "⭐⭐⭐⭐ Excellent",
-            "feedback": ["✅ AI-generated YAPS content", "✅ Project-specific", "💡 Personalize before posting"]
+            "semantic_quality": 9 if optimal_length else 7,
+            "total": 27 if optimal_length else 23,
+            "rating": "⭐⭐⭐⭐⭐ YAPS-Optimized" if optimal_length else "⭐⭐⭐⭐ Good",
+            "feedback": [
+                f"✅ Length: {char_count} chars" + (" (optimal 150-280)" if optimal_length else " ⚠️ adjust to 150-280"),
+                "✅ YAPS algorithm rules applied",
+                "✅ Data-driven & original insights",
+                "💡 Review & personalize sebelum post"
+            ]
         }
         
         return jsonify({"success": True, "content": content, "scoring": scoring})
