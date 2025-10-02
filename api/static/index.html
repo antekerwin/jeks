@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YAPS Generator</title>
+    <style>
+        body { font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; }
+        input, select, button { width: 100%; padding: 10px; margin: 10px 0; }
+        #result { background: #f0f0f0; padding: 15px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>YAPS Content Generator</h1>
+    <input id="project" placeholder="Project name (e.g. Sentient AI)">
+    <select id="style">
+        <option value="data-driven">Data-Driven</option>
+        <option value="competitive">Competitive</option>
+        <option value="thesis">Forward-Looking</option>
+    </select>
+    <button onclick="generate()">Generate</button>
+    <div id="result"></div>
+
+    <script>
+    async function generate() {
+        const project = document.getElementById('project').value;
+        const style = document.getElementById('style').value;
+        
+        const res = await fetch('/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({project, style})
+        });
+        
+        const data = await res.json();
+        document.getElementById('result').innerText = data.content;
+    }
+    </script>
+</body>
+</html>
