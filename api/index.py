@@ -39,30 +39,33 @@ def generate():
         project = data.get('project')
         prompt_type = data.get('prompt_type')
         
-        # Groq client
-        client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+        api_key = os.getenv('GROQ_API_KEY')
+        if not api_key:
+            return jsonify({"error": "GROQ_API_KEY not configured"}), 500
         
-        # Build prompt based on type
+        # Clean Groq initialization (no proxies)
+        client = Groq(api_key=api_key)
+        
+        # Prompt templates
         prompts_map = {
-            "data-driven": f"Generate a data-driven crypto Twitter thread about {project}. Include specific metrics, funding data, or growth numbers. Max 280 chars. Write in Bahasa Indonesia casual style.",
-            "competitive": f"Generate a competitive analysis Twitter thread about {project} vs competitors. Show unique differentiation. Max 280 chars. Bahasa Indonesia casual.",
-            "thesis": f"Generate a forward-looking thesis Twitter thread about {project}. Include bold prediction and market impact. Max 280 chars. Bahasa Indonesia casual."
+            "data-driven": f"Buat tweet crypto tentang {project} dengan fokus data & metrics. Max 280 karakter. Bahasa Indonesia casual.",
+            "competitive": f"Buat tweet crypto tentang {project} vs kompetitor. Tunjukkan keunggulan unik. Max 280 karakter. Bahasa Indonesia casual.",
+            "thesis": f"Buat tweet crypto tentang {project} dengan prediksi bold & market impact. Max 280 karakter. Bahasa Indonesia casual."
         }
         
-        # Generate content
+        # Generate
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": "You are a crypto analyst creating YAPS-optimized Twitter content in Bahasa Indonesia casual style."},
                 {"role": "user", "content": prompts_map.get(prompt_type, prompts_map['data-driven'])}
             ],
             temperature=0.7,
-            max_tokens=400
+            max_tokens=300
         )
         
         content = response.choices[0].message.content
         
-        # Simple scoring (nanti bisa enhance)
+        # Scoring
         scoring = {
             "crypto_relevance": 8,
             "engagement_potential": 9,
@@ -70,10 +73,10 @@ def generate():
             "total": 25,
             "rating": "⭐⭐⭐⭐ Excellent",
             "feedback": [
-                "✅ AI-generated content optimized for YAPS",
+                "✅ AI-generated YAPS-optimized content",
                 "✅ Project-specific insights",
-                "✅ Engaging language",
-                "💡 Review and personalize before posting"
+                "✅ Casual Bahasa Indonesia",
+                "💡 Personalize sebelum posting"
             ]
         }
         
@@ -85,3 +88,6 @@ def generate():
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
