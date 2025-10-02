@@ -58,72 +58,33 @@ def generate():
         prompt_type = data.get('prompt_type')
         custom_request = data.get('custom_request', '')
         
-        # GROK AI VIA OPENROUTER (GANTI DARI GROQ)
-        api_key = "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"
+        api_key = os.getenv('GROQ_API_KEY')
+        if not api_key:
+            return jsonify({"error": "API key not set"}), 500
         
-        # SYSTEM PROMPT YANG ENFORCE BAHASA INDONESIA
-        system_prompt = """PENTING: Kamu WAJIB menulis 100% dalam BAHASA INDONESIA.
-
-Kamu adalah crypto analyst Indonesia yang ahli membuat konten Twitter untuk YAPS.
-
-ATURAN WAJIB:
-- 100% BAHASA INDONESIA (gunakan kata: dominasi, naik, turun, grab, menurut kalian, siapa, kenapa, bagaimana)
-- Include data/metrics spesifik dengan angka
-- Max 1 tag atau tanpa tag
-- 150-280 karakter optimal
-- Ada pertanyaan untuk engagement
-
-CONTOH FORMAT YANG BENAR:
-"[Project] dominasi [category] dengan mindshare tinggi. [Metric] naik [%], [data point] mencapai [angka]. Prediksi: [thesis]. Menurut kalian [question]?"
-
-JANGAN gunakan bahasa Inggris. Output hanya tweet bahasa Indonesia."""
-
+        yaps_base = """YAPS: 150-280 chars, data/metrics, original, question."""
+        styles = ["casual trader", "analyst", "community", "contrarian", "technical"]
+        chosen_style = random.choice(styles)
+        
         if prompt_type == "custom" and custom_request:
-            user_prompt = f"""PROJECT: {project}
-CATEGORY: {get_category(project.upper())}
-
-Custom request: {custom_request}
-
-Buat 1 tweet BAHASA INDONESIA yang optimized untuk YAPS.
-Output: Hanya tweet, tanpa penjelasan."""
+            user_prompt = f"{yaps_base}\nPROJECT: {project}\nSTYLE: {chosen_style}\nREQUEST: {custom_request}\n\nGENERATE tweet:"
         else:
-            user_prompt = f"""PROJECT: {project}
-CATEGORY: {get_category(project.upper())}
-
-Buat 1 tweet BAHASA INDONESIA dengan data/metrics yang optimized untuk YAPS.
-Output: Hanya tweet, tanpa penjelasan."""
+            user_prompt = f"{yaps_base}\nPROJECT: {project}\nSTYLE: {chosen_style}\n\nGenerate data-driven tweet. 150-280 chars."
         
-        # REQUEST KE GROK AI (OPENROUTER)
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://jeks-delta.vercel.app",
-            "X-Title": "YAPS Generator"
-        }
+        temp = random.uniform(0.7, 0.95)
         
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         payload = {
-            "model": "x-ai/grok-2-1212",  # Grok 2
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "temperature": random.uniform(0.7, 0.85),
-            "max_tokens": 300
+            "model": "llama-3.3-70b-versatile",
+            "messages": [{"role": "system", "content": f"Crypto analyst: {chosen_style}. YAPS algorithm. Output ONLY tweet."}, {"role": "user", "content": user_prompt}],
+            "temperature": temp, "max_tokens": 400, "top_p": 0.9
         }
         
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=30
-        )
-        
+        response = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=30)
         if response.status_code != 200:
-            return jsonify({"error": f"API error: {response.status_code}"}), 500
+            return jsonify({"error": f"API error"}), 500
         
-        content = response.json()['choices'][0]['message']['content'].strip()
-        
-        # SCORING (TETAP SAMA)
+        content = response.json()['choices'][0]['message']['content']
         char_count = len(content)
         optimal_length = 150 <= char_count <= 280
         has_data = any(char.isdigit() for char in content)
@@ -131,28 +92,18 @@ Output: Hanya tweet, tanpa penjelasan."""
         quality = 7 + (1 if optimal_length else 0) + (1 if has_data else 0) + (1 if has_question else 0)
         
         scoring = {
-            "crypto_relevance": quality,
-            "engagement_potential": 9 if has_question else 7,
+            "crypto_relevance": quality, "engagement_potential": 9 if has_question else 7,
             "semantic_quality": 9 if (has_data and optimal_length) else 7,
             "total": quality + (9 if has_question else 7) + (9 if has_data else 7),
             "rating": f"⭐⭐⭐⭐{'⭐' if quality >= 9 else ''} Quality: {quality}/10",
-            "feedback": [
-                f"📏 {char_count} chars" + (" ✅" if optimal_length else " ⚠️"),
-                f"📊 Data: {'✅' if has_data else '⚠️'}",
-                f"💬 Engage: {'✅' if has_question else '⚠️'}",
-                f"🎯 Est. YAPS: ~{int(quality*0.7*75)} pts",
-                f"🤖 Model: Grok 2 AI"
-            ]
+            "feedback": [f"📏 {char_count} chars" + (" ✅" if optimal_length else " ⚠️"), f"📊 Data: {'✅' if has_data else '⚠️'}", f"💬 Engage: {'✅' if has_question else '⚠️'}", f"🎯 Est. YAPS: ~{int(quality*0.7*75)} pts", f"🎨 Style: {chosen_style}"]
         }
-        
         return jsonify({"success": True, "content": content, "scoring": scoring})
-        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/analyze', methods=['POST'])
 def analyze_content():
-    """Analyze user's content berdasarkan Kaito YAPS algorithm"""
     try:
         data = request.json
         content = data.get('content', '').strip()
@@ -160,7 +111,6 @@ def analyze_content():
         if not content:
             return jsonify({"error": "Content required"}), 400
         
-        # 1. CONTENT OPTIMIZATION (30% weight)
         char_count = len(content)
         optimal_length = 150 <= char_count <= 280
         min_length = char_count >= 50
@@ -183,7 +133,6 @@ def analyze_content():
         if is_original: content_opt_score += 2
         content_opt_score = min(10, content_opt_score)
         
-        # 2. ENGAGEMENT STRATEGY (50% weight)
         has_question = '?' in content
         has_data = any(char.isdigit() for char in content)
         has_cta = any(word in content_lower for word in ['what', 'how', 'why', 'thoughts', 'think', 'opinion'])
@@ -194,7 +143,6 @@ def analyze_content():
         if has_cta: engagement_score += 3
         engagement_score = min(10, engagement_score)
         
-        # 3. CONTENT QUALITY (20% weight)
         has_metrics = bool(re.search(r'\d+[%$MBK]|\$\d+|\d+x', content))
         has_analysis = len(content.split()) > 15
         no_spam_pattern = not bool(re.search(r'(.)\1{3,}', content))
