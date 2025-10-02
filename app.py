@@ -30,75 +30,81 @@ PROMPT_TEMPLATES = {
     "data_driven": {
         "name": "📊 Analisis Data & Metrik",
         "description": "Konten berdasarkan data funding, TVL, pertumbuhan user",
-        "system": """PENTING: Semua output WAJIB 100% BAHASA INDONESIA.
+        "system": """CRITICAL INSTRUCTION: YOU MUST WRITE 100% IN INDONESIAN LANGUAGE. NO ENGLISH ALLOWED!
 
-Anda adalah crypto analyst yang ahli membuat konten Twitter data-driven untuk YAPS.
+Anda adalah crypto analyst Indonesia yang ahli membuat konten Twitter data-driven untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Data konkret, metrics, original insight
 - Smart Followers Engagement (50%): Konten yang engage influencers
 - Semantic Analysis (20%): LLM evaluate depth & originality
 
-STRUKTUR:
+STRUKTUR (HARUS BAHASA INDONESIA):
 1. Hook dengan data point terkuat
 2. 2-3 metric spesifik dengan konteks
 3. Analisis kenapa metrics ini penting
 4. Thesis/prediction
 5. Question untuk drive discussion
 
-HINDARI:
+WAJIB HINDARI:
+- BAHASA INGGRIS (100% HARUS INDONESIA!)
 - Keyword stuffing
 - Lebih dari 2 tags
 - Generic statements
 - Copy-paste news
-- BAHASA INGGRIS (WAJIB INDONESIA!)
+
+CONTOH YANG BENAR:
+"LIMITLESS dominasi AI Agents dengan 7% mindshare. Funding AI protocols naik 340% Q4 2024. Prediksi: category leader bisa grab 15% dalam 6 bulan. Siapa kompetitor terdekat?"
 
 BAHASA: Indonesia (natural, tidak kaku)
-LENGTH: 150-280 karakter optimal"""
+LENGTH: 150-280 karakter"""
     },
     
     "competitive": {
         "name": "🎯 Positioning & Kompetitor",
         "description": "Analisis competitive landscape dan unique differentiation",
-        "system": """PENTING: Semua output WAJIB 100% BAHASA INDONESIA.
+        "system": """CRITICAL INSTRUCTION: YOU MUST WRITE 100% IN INDONESIAN LANGUAGE. NO ENGLISH ALLOWED!
 
-Anda adalah crypto strategist yang ahli analisis kompetitif untuk YAPS.
+Anda adalah crypto strategist Indonesia yang ahli analisis kompetitif untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Market structure understanding
 - Smart Followers Engagement (50%): Thought leadership
 - Semantic Analysis (20%): Original positioning analysis
 
-STRUKTUR:
+STRUKTUR (HARUS BAHASA INDONESIA):
 1. Market context & kategori
 2. Competitive map (2-3 competitors)
 3. Unique differentiation project ini
 4. Thesis siapa yang menang dan kenapa
 5. Question untuk community perspective
 
-HINDARI:
+WAJIB HINDARI:
+- BAHASA INGGRIS (100% HARUS INDONESIA!)
 - Shilling tanpa objektif
 - Excessive tags
 - Surface-level comparison
-- BAHASA INGGRIS (WAJIB INDONESIA!)
+
+CONTOH YANG BENAR:
+"Prediction markets heating up: POLYMARKET (6.41%) vs Augur. Edge: UX 10x smooth, likuiditas $50M+. Thesis: Winner take most market. Tim mana?"
 
 BAHASA: Indonesia (professional tapi approachable)
-LENGTH: 150-280 karakter optimal"""
+LENGTH: 150-280 karakter"""
     },
     
     "thesis": {
         "name": "💡 Forward-Looking Thesis",
         "description": "Prediksi trend, market impact, contrarian take",
-        "system": """PENTING: Semua output WAJIB 100% BAHASA INDONESIA.
+        "system": """CRITICAL INSTRUCTION: YOU MUST WRITE 100% IN INDONESIAN LANGUAGE. NO ENGLISH ALLOWED!
 
-Anda adalah crypto thought leader yang ahli membuat thesis & prediction untuk YAPS.
+Anda adalah crypto thought leader Indonesia yang ahli membuat thesis & prediction untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Trend understanding
 - Smart Followers Engagement (50%): Provocative but backed thesis
 - Semantic Analysis (20%): Original thinking, contrarian OK
 
-STRUKTUR:
+STRUKTUR (HARUS BAHASA INDONESIA):
 1. Trend observation (apa yang shifting)
 2. Positioning project dalam trend ini
 3. Clear thesis/prediction (bold OK)
@@ -106,14 +112,17 @@ STRUKTUR:
 5. Risk/consideration (show balanced thinking)
 6. Question untuk invite debate
 
-HINDARI:
+WAJIB HINDARI:
+- BAHASA INGGRIS (100% HARUS INDONESIA!)
 - Opinion tanpa backing
 - Emotional statements
 - Hype without substance
-- BAHASA INGGRIS (WAJIB INDONESIA!)
+
+CONTOH YANG BENAR:
+"Hot take: L1 wars belum selesai. MONAD positioning sebagai parallelized EVM - 10K TPS. Thesis: L1 yang balance speed + compatibility bisa ambil 30% L2 market. Terlalu bullish?"
 
 BAHASA: Indonesia (confident, analytical)
-LENGTH: 150-280 karakter optimal"""
+LENGTH: 150-280 karakter"""
     }
 }
 
@@ -148,27 +157,25 @@ def generate_content():
         
         prompt_template = PROMPT_TEMPLATES[prompt_type]
         
-        user_message = f"""Generate konten Twitter untuk project: {project_name}
+        user_message = f"""PENTING: Tulis 100% dalam BAHASA INDONESIA. Jangan gunakan bahasa Inggris sama sekali!
 
+Project: {project_name}
 Category: {project['category']}
-Current Mindshare: {project['mindshare']}
+Mindshare: {project['mindshare']}
 
-WAJIB BAHASA INDONESIA 100%!
+Task: Buat 1 tweet BAHASA INDONESIA untuk YAPS yang:
 
-Buat 1 tweet berkualitas tinggi yang:
 1. Optimized untuk YAPS scoring (Crypto Relevance 30% + Smart Engagement 50% + Semantic 20%)
-2. Include data/metrics spesifik (bisa estimated berdasarkan mindshare dan category)
-3. Original analysis, bukan copy-paste
-4. Natural bahasa Indonesia (JANGAN BAHASA INGGRIS!)
-5. Max 1-2 tags (atau tanpa tag lebih baik)
+2. Include data/metrics spesifik estimasi berdasarkan mindshare {project['mindshare']} dan category {project['category']}
+3. Original analysis mendalam, bukan copy-paste
+4. 100% NATURAL BAHASA INDONESIA (kata-kata seperti: dominasi, naik, turun, grab, menurut kalian, siapa, kenapa, bagaimana)
+5. Max 1 tag atau tanpa tag
 6. 150-280 karakter
 
-Format: Langsung tulis tweet dalam bahasa Indonesia. Jangan ada penjelasan atau metadata.
+CONTOH FORMAT (IKUTI INI):
+"[Project] dominasi [category] dengan mindshare [%]. [Metric 1] naik [%], [Metric 2] mencapai [angka]. Prediksi: [thesis]. Menurut kalian [question]?"
 
-Contoh style yang benar:
-"LIMITLESS dominasi AI Agents dengan 7% mindshare. Funding AI agent protocols naik 340% Q4 2024. Prediksi: category leader bisa grab 15% dalam 6 bulan. Menurut kalian, siapa kompetitor terdekat?"
-
-Generate HANYA konten tweet-nya."""
+JANGAN GUNAKAN BAHASA INGGRIS. Output hanya tweet bahasa Indonesia, tanpa penjelasan."""
 
         response = client.chat.completions.create(
             model="x-ai/grok-2-1212",
@@ -176,7 +183,7 @@ Generate HANYA konten tweet-nya."""
                 {"role": "system", "content": prompt_template['system']},
                 {"role": "user", "content": user_message}
             ],
-            temperature=0.8,
+            temperature=0.7,
             max_tokens=500,
             extra_headers={
                 "HTTP-Referer": "https://yourapp.vercel.app",
