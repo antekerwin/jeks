@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YAPS Content Generator - AI Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border 0.3s;
+        }
+        
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .prompt-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .prompt-card {
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .prompt-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+        
+        .prompt-card.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .prompt-card h3 {
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+        
+        .prompt-card p {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.02);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .result-section {
+            display: none;
+        }
+        
+        .result-section.show {
+            display: block;
+        }
+        
+        .content-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .content-text {
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+        }
+        
+        .scoring {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .score-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            text-align: center;
+        }
+        
+        .score-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .score-label {
+            color: #666;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+        
+        .feedback-list {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        .feedback-list ul {
+            list-style: none;
+        }
+        
+        .feedback-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #f5c6cb;
+        }
+        
+        .project-info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .project-info p {
+            margin: 5px 0;
+            color: #004085;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 YAPS Content Generator</h1>
+            <p>Generate konten Twitter berkualitas tinggi untuk maximize YAPS points</p>
+        </div>
+        
+        <div class="card">
+            <form id="generatorForm">
+                <div class="form-group">
+                    <label>1️⃣ Pilih Project dari Pre-TGE Arena</label>
+                    <select id="projectSelect" required>
+                        <option value="">-- Pilih Project --</option>
+                        {% for project in projects %}
+                        <option value="{{ project.name }}" 
+                                data-mindshare="{{ project.mindshare }}"
+                                data-category="{{ project.category }}">
+                            {{ project.name }} - {{ project.mindshare }} ({{ project.category }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div id="projectInfo" class="project-info" style="display: none;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label>2️⃣ Pilih Jenis Konten (Prompt AI)</label>
+                    <div class="prompt-cards">
+                        {% for key, prompt in prompts.items() %}
+                        <div class="prompt-card" data-value="{{ key }}">
+                            <h3>{{ prompt.name }}</h3>
+                            <p>{{ prompt.description }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" id="promptType" required>
+                </div>
+                
+                <button type="submit" class="btn" id="generateBtn">
+                    🎯 Generate Konten Berkualitas
+                </button>
+            </form>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 15px; color: #667eea; font-weight: 600;">
+                    Generating konten berkualitas...
+                </p>
+            </div>
+        </div>
+        
+        <div class="card result-section" id="resultSection">
+            <h2 style="color: #667eea; margin-bottom: 20px;">📝 Hasil Generate</h2>
+            
+            <div class="content-box">
+                <div class="content-text" id="generatedContent"></div>
+                <button class="copy-btn" id="copyBtn">📋 Copy ke Clipboard</button>
+            </div>
+            
+            <h3 style="margin-top: 30px; margin-bottom: 15px; color: #333;">📊 YAPS Score Analysis</h3>
+            
+            <div class="scoring" id="scoringSection"></div>
+            
+            <div class="feedback-list" id="feedbackSection"></div>
+            
+            <button class="btn" style="margin-top: 20px;" onclick="location.reload()">
+                🔄 Generate Konten Baru
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        const promptCards = document.querySelectorAll('.prompt-card');
+        const promptTypeInput = document.getElementById('promptType');
+        const projectSelect = document.getElementById('projectSelect');
+        const projectInfo = document.getElementById('projectInfo');
+        const form = document.getElementById('generatorForm');
+        const loading = document.getElementById('loading');
+        const resultSection = document.getElementById('resultSection');
+        
+        promptCards.forEach(card => {
+            card.addEventListener('click', () => {
+                promptCards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                promptTypeInput.value = card.dataset.value;
+            });
+        });
+        
+        projectSelect.addEventListener('change', (e) => {
+            const option = e.target.selectedOptions[0];
+            if (option.value) {
+                const mindshare = option.dataset.mindshare;
+                const category = option.dataset.category;
+                projectInfo.innerHTML = `
+                    <p><strong>Mindshare:</strong> ${mindshare}</p>
+                    <p><strong>Category:</strong> ${category}</p>
+                `;
+                projectInfo.style.display = 'block';
+            } else {
+                projectInfo.style.display = 'none';
+            }
+        });
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const project = projectSelect.value;
+            const promptType = promptTypeInput.value;
+            
+            if (!project || !promptType) {
+                alert('Mohon pilih project dan jenis konten!');
+                return;
+            }
+            
+            loading.classList.add('show');
+            resultSection.classList.remove('show');
+            
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ project, prompt_type: promptType })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Terjadi kesalahan');
+                }
+                
+                displayResult(data);
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                loading.classList.remove('show');
+            }
+        });
+        
+        function displayResult(data) {
+            document.getElementById('generatedContent').textContent = data.content;
+            
+            const scoring = data.scoring;
+            const scoringHTML = `
+                <div class="score-item">
+                    <div class="score-value">${scoring.crypto_relevance}/10</div>
+                    <div class="score-label">Crypto Relevance</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-value">${scoring.engagement_potential}/10</div>
+                    <div class="score-label">Engagement Potential</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-value">${scoring.semantic_quality}/10</div>
+                    <div class="score-label">Semantic Quality</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-value">${scoring.total}/30</div>
+                    <div class="score-label">Total Score</div>
+                </div>
+            `;
+            document.getElementById('scoringSection').innerHTML = scoringHTML;
+            
+            const feedbackHTML = `
+                <h4 style="margin-bottom: 15px; color: #333;">Rating: ${scoring.rating}</h4>
+                <ul>
+                    ${scoring.feedback.map(item => `<li>${item}</li>`).join('')}
+                </ul>
+            `;
+            document.getElementById('feedbackSection').innerHTML = feedbackHTML;
+            
+            resultSection.classList.add('show');
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const content = document.getElementById('generatedContent').textContent;
+            navigator.clipboard.writeText(content).then(() => {
+                alert('✅ Konten berhasil dicopy!');
+            });
+        });
+    </script>
+</body>
+</html>
