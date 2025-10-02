@@ -201,12 +201,12 @@ def analyze_content():
         if 'airdrop' in content_lower and 'risk' in content_lower: content_types.append("Airdrop strategy ✅")
         if re.search(r'thread|1/', content_lower): content_types.append("Thread format ✅")
         
-        penalties = []
-        if keyword_stuffing: penalties.append("⚠️ Keyword stuffing detected")
-        if 'kaito' in content_lower and '@' in content: penalties.append("⚠️ Avoid tagging Kaito")
-        if generic_count >= 3: penalties.append("⚠️ Too many generic phrases")
-        if char_count < 50: penalties.append("⚠️ Too short (min 50 chars)")
-        if not has_crypto_focus: penalties.append("⚠️ No crypto-specific topic")
+        kaito_penalties = []
+        if keyword_stuffing: kaito_penalties.append("⚠️ Keyword stuffing detected")
+        if 'kaito' in content_lower and '@' in content: kaito_penalties.append("⚠️ Avoid tagging Kaito")
+        if generic_count >= 3: kaito_penalties.append("⚠️ Too many generic phrases")
+        if char_count < 50: kaito_penalties.append("⚠️ Too short (min 50 chars)")
+        if not has_crypto_focus: kaito_penalties.append("⚠️ No crypto-specific topic")
         
         suggestions = []
         if not has_question: suggestions.append("💡 Add question untuk drive discussion (75x Twitter boost)")
@@ -245,11 +245,36 @@ def analyze_content():
                     "rating": rating,
                     "estimated_yaps": estimated_yaps,
                     "breakdown": {
-                        "content_optimization": {"score": content_opt_score, "weight": "30%", "details": {"length": f"{char_count} chars" + (" ✅" if optimal_length else " ⚠️"), "crypto_focus": "✅" if has_crypto_focus else "❌", "originality": "✅" if is_original else "⚠️", "keywords": f"{keyword_count} kw" + (" ✅" if 1 <= keyword_count <= 3 else " ⚠️")}},
-                        "engagement_strategy": {"score": engagement_score, "weight": "50%", "details": {"question": "✅" if has_question else "❌", "data": "✅" if has_data else "❌", "cta": "✅" if has_cta else "❌"}},
-                        "content_quality": {"score": quality_score, "weight": "20%", "details": {"metrics": "✅" if has_metrics else "❌", "depth": "✅" if has_analysis else "⚠️", "spam": "✅" if no_spam_pattern else "⚠️"}}
+                        "content_optimization": {
+                            "score": content_opt_score,
+                            "weight": "30%",
+                            "details": {
+                                "length": f"{char_count} chars" + (" ✅" if optimal_length else " ⚠️"),
+                                "crypto_focus": "✅" if has_crypto_focus else "❌",
+                                "originality": "✅" if is_original else "⚠️",
+                                "keywords": f"{keyword_count} kw" + (" ✅" if 1 <= keyword_count <= 3 else " ⚠️")
+                            }
+                        },
+                        "engagement_strategy": {
+                            "score": engagement_score,
+                            "weight": "50%",
+                            "details": {
+                                "question": "✅" if has_question else "❌",
+                                "data": "✅" if has_data else "❌",
+                                "cta": "✅" if has_cta else "❌"
+                            }
+                        },
+                        "content_quality": {
+                            "score": quality_score,
+                            "weight": "20%",
+                            "details": {
+                                "metrics": "✅" if has_metrics else "❌",
+                                "depth": "✅" if has_analysis else "⚠️",
+                                "spam": "✅" if no_spam_pattern else "⚠️"
+                            }
+                        }
                     },
-                    "penalties": penalties if penalties else ["✅ No penalties"]
+                    "penalties": kaito_penalties if kaito_penalties else ["✅ No penalties"]
                 },
                 "twitter_algorithm": {
                     "score": twitter_score,
