@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 import os
+import requests
 
 app = Flask(__name__)
 
@@ -12,18 +13,9 @@ PROJECTS = [
 ]
 
 PROMPTS = {
-    "data-driven": {
-        "name": "📊 Analisis Data & Metrik",
-        "description": "Konten berdasarkan data funding, TVL, pertumbuhan user"
-    },
-    "competitive": {
-        "name": "🎯 Positioning & Kompetitor",
-        "description": "Analisis competitive landscape dan unique differentiation"
-    },
-    "thesis": {
-        "name": "💡 Forward-Looking Thesis",
-        "description": "Prediksi trend, market impact, contrarian take"
-    }
+    "data-driven": {"name": "📊 Analisis Data & Metrik", "description": "Konten berdasarkan data funding, TVL, pertumbuhan user"},
+    "competitive": {"name": "🎯 Positioning & Kompetitor", "description": "Analisis competitive landscape dan unique differentiation"},
+    "thesis": {"name": "💡 Forward-Looking Thesis", "description": "Prediksi trend, market impact, contrarian take"}
 }
 
 @app.route('/')
@@ -33,58 +25,56 @@ def home():
 @app.route('/generate', methods=['POST'])
 def generate():
     try:
-        from groq import Groq
-        
         data = request.json
         project = data.get('project')
         prompt_type = data.get('prompt_type')
         
         api_key = os.getenv('GROQ_API_KEY')
         if not api_key:
-            return jsonify({"error": "GROQ_API_KEY not configured"}), 500
-        
-        # Clean Groq initialization (no proxies)
-        client = Groq(api_key=api_key)
+            return jsonify({"error": "API key not set"}), 500
         
         # Prompt templates
         prompts_map = {
-            "data-driven": f"Buat tweet crypto tentang {project} dengan fokus data & metrics. Max 280 karakter. Bahasa Indonesia casual.",
-            "competitive": f"Buat tweet crypto tentang {project} vs kompetitor. Tunjukkan keunggulan unik. Max 280 karakter. Bahasa Indonesia casual.",
-            "thesis": f"Buat tweet crypto tentang {project} dengan prediksi bold & market impact. Max 280 karakter. Bahasa Indonesia casual."
+            "data-driven": f"Buat tweet crypto tentang {project} dengan data & metrics. Max 280 char. Bahasa Indonesia casual.",
+            "competitive": f"Buat tweet crypto tentang {project} vs kompetitor. Max 280 char. Bahasa Indonesia casual.",
+            "thesis": f"Buat tweet crypto tentang {project} dengan prediksi bold. Max 280 char. Bahasa Indonesia casual."
         }
         
-        # Generate
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "user", "content": prompts_map.get(prompt_type, prompts_map['data-driven'])}
-            ],
-            temperature=0.7,
-            max_tokens=300
+        # Direct HTTP call ke Groq API
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [{"role": "user", "content": prompts_map.get(prompt_type, prompts_map['data-driven'])}],
+            "temperature": 0.7,
+            "max_tokens": 300
+        }
+        
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=30
         )
         
-        content = response.choices[0].message.content
+        if response.status_code != 200:
+            return jsonify({"error": f"API error: {response.text}"}), 500
         
-        # Scoring
+        content = response.json()['choices'][0]['message']['content']
+        
         scoring = {
             "crypto_relevance": 8,
             "engagement_potential": 9,
             "semantic_quality": 8,
             "total": 25,
             "rating": "⭐⭐⭐⭐ Excellent",
-            "feedback": [
-                "✅ AI-generated YAPS-optimized content",
-                "✅ Project-specific insights",
-                "✅ Casual Bahasa Indonesia",
-                "💡 Personalize sebelum posting"
-            ]
+            "feedback": ["✅ AI-generated YAPS content", "✅ Project-specific", "💡 Personalize before posting"]
         }
         
-        return jsonify({
-            "success": True,
-            "content": content,
-            "scoring": scoring
-        })
+        return jsonify({"success": True, "content": content, "scoring": scoring})
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
