@@ -1,54 +1,45 @@
-from flask import Flask, jsonify
+from flask import Flask, render_template, request, jsonify
 import os
 
 app = Flask(__name__)
 
 @app.route('/')
 def home():
+    return render_template('index.html')
+
+@app.route('/api/status')
+def status():
     return jsonify({
         "status": "success",
-        "message": "YAPS Generator API is running!",
-        "groq_key_exists": bool(os.getenv("GROQ_API_KEY"))
+        "groq_key": bool(os.getenv("GROQ_API_KEY"))
     })
-
-@app.route('/test')
-def test():
-    try:
-        from groq import Groq
-        api_key = os.getenv("GROQ_API_KEY")
-        
-        if not api_key:
-            return jsonify({"error": "GROQ_API_KEY not set"}), 500
-        
-        client = Groq(api_key=api_key)
-        
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": "Say hello"}],
-            max_tokens=50
-        )
-        
-        return jsonify({
-            "status": "success",
-            "response": response.choices[0].message.content
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 @app.route('/generate', methods=['POST'])
 def generate():
-    from flask import request
-    from groq import Groq
-    
-    data = request.json
-    project = data.get('project', 'Bitcoin')
-    
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-    
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": f"Write a crypto tweet about {project}. Max 280 chars."}],
-        max_tokens=300
-    )
-    
-    return jsonify({"content": response.choices[0].message.content})
+    try:
+        from groq import Groq
+        
+        data = request.json
+        project = data.get('project', 'Bitcoin')
+        style = data.get('style', 'data-driven')
+        
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        
+        prompt = f"Generate a high-quality crypto Twitter content about {project} using {style} analysis style. Max 280 characters. Include relevant data/metrics."
+        
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=400
+        )
+        
+        return jsonify({
+            "success": True,
+            "content": response.choices[0].message.content
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
