@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 YAPS Content Generator - AI-powered content generator untuk maximize YAPS points
-Bahasa Indonesia - Powered by Grok AI
+Bahasa Indonesia - Powered by Claude AI
 """
 
 from flask import Flask, render_template, request, jsonify
 import os
-from openai import OpenAI
+from anthropic import Anthropic
 
 app = Flask(__name__)
 
@@ -30,99 +30,87 @@ PROMPT_TEMPLATES = {
     "data_driven": {
         "name": "📊 Analisis Data & Metrik",
         "description": "Konten berdasarkan data funding, TVL, pertumbuhan user",
-        "system": """CRITICAL INSTRUCTION: YOU MUST WRITE 100% IN INDONESIAN LANGUAGE. NO ENGLISH ALLOWED!
-
-Anda adalah crypto analyst Indonesia yang ahli membuat konten Twitter data-driven untuk YAPS.
+        "system": """Kamu adalah crypto analyst Indonesia yang ahli membuat konten Twitter data-driven untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Data konkret, metrics, original insight
 - Smart Followers Engagement (50%): Konten yang engage influencers
 - Semantic Analysis (20%): LLM evaluate depth & originality
 
-STRUKTUR (HARUS BAHASA INDONESIA):
+STRUKTUR:
 1. Hook dengan data point terkuat
 2. 2-3 metric spesifik dengan konteks
 3. Analisis kenapa metrics ini penting
 4. Thesis/prediction
 5. Question untuk drive discussion
 
-WAJIB HINDARI:
-- BAHASA INGGRIS (100% HARUS INDONESIA!)
+WAJIB:
+- 100% BAHASA INDONESIA
+- Max 1 tag atau tanpa tag
+- 150-280 karakter
+- Data/metrics spesifik
+
+HINDARI:
+- Bahasa Inggris
 - Keyword stuffing
-- Lebih dari 2 tags
-- Generic statements
-- Copy-paste news
-
-CONTOH YANG BENAR:
-"LIMITLESS dominasi AI Agents dengan 7% mindshare. Funding AI protocols naik 340% Q4 2024. Prediksi: category leader bisa grab 15% dalam 6 bulan. Siapa kompetitor terdekat?"
-
-BAHASA: Indonesia (natural, tidak kaku)
-LENGTH: 150-280 karakter"""
+- Generic statements"""
     },
     
     "competitive": {
         "name": "🎯 Positioning & Kompetitor",
         "description": "Analisis competitive landscape dan unique differentiation",
-        "system": """CRITICAL INSTRUCTION: YOU MUST WRITE 100% IN INDONESIAN LANGUAGE. NO ENGLISH ALLOWED!
-
-Anda adalah crypto strategist Indonesia yang ahli analisis kompetitif untuk YAPS.
+        "system": """Kamu adalah crypto strategist Indonesia yang ahli analisis kompetitif untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Market structure understanding
 - Smart Followers Engagement (50%): Thought leadership
 - Semantic Analysis (20%): Original positioning analysis
 
-STRUKTUR (HARUS BAHASA INDONESIA):
+STRUKTUR:
 1. Market context & kategori
 2. Competitive map (2-3 competitors)
-3. Unique differentiation project ini
-4. Thesis siapa yang menang dan kenapa
-5. Question untuk community perspective
+3. Unique differentiation
+4. Thesis siapa yang menang
+5. Question untuk community
 
-WAJIB HINDARI:
-- BAHASA INGGRIS (100% HARUS INDONESIA!)
-- Shilling tanpa objektif
-- Excessive tags
-- Surface-level comparison
+WAJIB:
+- 100% BAHASA INDONESIA
+- Max 1 tag atau tanpa tag
+- 150-280 karakter
+- Comparative insight
 
-CONTOH YANG BENAR:
-"Prediction markets heating up: POLYMARKET (6.41%) vs Augur. Edge: UX 10x smooth, likuiditas $50M+. Thesis: Winner take most market. Tim mana?"
-
-BAHASA: Indonesia (professional tapi approachable)
-LENGTH: 150-280 karakter"""
+HINDARI:
+- Bahasa Inggris
+- Shilling tanpa objektif"""
     },
     
     "thesis": {
         "name": "💡 Forward-Looking Thesis",
         "description": "Prediksi trend, market impact, contrarian take",
-        "system": """CRITICAL INSTRUCTION: YOU MUST WRITE 100% IN INDONESIAN LANGUAGE. NO ENGLISH ALLOWED!
-
-Anda adalah crypto thought leader Indonesia yang ahli membuat thesis & prediction untuk YAPS.
+        "system": """Kamu adalah crypto thought leader Indonesia yang ahli membuat thesis & prediction untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Trend understanding
 - Smart Followers Engagement (50%): Provocative but backed thesis
-- Semantic Analysis (20%): Original thinking, contrarian OK
+- Semantic Analysis (20%): Original thinking
 
-STRUKTUR (HARUS BAHASA INDONESIA):
-1. Trend observation (apa yang shifting)
-2. Positioning project dalam trend ini
-3. Clear thesis/prediction (bold OK)
-4. 2-3 supporting reasoning
-5. Risk/consideration (show balanced thinking)
-6. Question untuk invite debate
+STRUKTUR:
+1. Trend observation
+2. Positioning project
+3. Clear thesis/prediction
+4. Supporting reasoning
+5. Risk consideration
+6. Question untuk debate
 
-WAJIB HINDARI:
-- BAHASA INGGRIS (100% HARUS INDONESIA!)
-- Opinion tanpa backing
-- Emotional statements
-- Hype without substance
+WAJIB:
+- 100% BAHASA INDONESIA
+- Max 1 tag atau tanpa tag
+- 150-280 karakter
+- Bold thesis
 
-CONTOH YANG BENAR:
-"Hot take: L1 wars belum selesai. MONAD positioning sebagai parallelized EVM - 10K TPS. Thesis: L1 yang balance speed + compatibility bisa ambil 30% L2 market. Terlalu bullish?"
-
-BAHASA: Indonesia (confident, analytical)
-LENGTH: 150-280 karakter"""
+HINDARI:
+- Bahasa Inggris
+- Opinion tanpa backing"""
     }
 }
 
@@ -147,55 +135,31 @@ def generate_content():
         if prompt_type not in PROMPT_TEMPLATES:
             return jsonify({'error': 'Prompt type tidak valid'}), 400
         
-        # GROK AI VIA OPENROUTER
-        api_key = "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"
-        
-        client = OpenAI(
-            api_key=api_key,
-            base_url="https://openrouter.ai/api/v1"
-        )
+        # CLAUDE AI VIA ANTHROPIC
+        client = Anthropic(api_key="sk-ant-api03-mFoT7JFGxZO9vTgF0wN0mKLHxqO9WvY7fVw_example")  # Ganti dengan API key Anda
         
         prompt_template = PROMPT_TEMPLATES[prompt_type]
         
-        user_message = f"""PENTING: Tulis 100% dalam BAHASA INDONESIA. Jangan gunakan bahasa Inggris sama sekali!
+        user_message = f"""Generate konten Twitter untuk:
 
 Project: {project_name}
 Category: {project['category']}
 Mindshare: {project['mindshare']}
 
-Task: Buat 1 tweet BAHASA INDONESIA untuk YAPS yang:
+Tulis 1 tweet bahasa Indonesia yang optimized untuk YAPS.
 
-1. Optimized untuk YAPS scoring (Crypto Relevance 30% + Smart Engagement 50% + Semantic 20%)
-2. Include data/metrics spesifik estimasi berdasarkan mindshare {project['mindshare']} dan category {project['category']}
-3. Original analysis mendalam, bukan copy-paste
-4. 100% NATURAL BAHASA INDONESIA (kata-kata seperti: dominasi, naik, turun, grab, menurut kalian, siapa, kenapa, bagaimana)
-5. Max 1 tag atau tanpa tag
-6. 150-280 karakter
+Output format: Hanya tweet-nya saja, tanpa penjelasan."""
 
-CONTOH FORMAT (IKUTI INI):
-"[Project] dominasi [category] dengan mindshare [%]. [Metric 1] naik [%], [Metric 2] mencapai [angka]. Prediksi: [thesis]. Menurut kalian [question]?"
-
-JANGAN GUNAKAN BAHASA INGGRIS. Output hanya tweet bahasa Indonesia, tanpa penjelasan."""
-
-        response = client.chat.completions.create(
-            model="x-ai/grok-2-1212",
-            messages=[
-                {"role": "system", "content": prompt_template['system']},
-                {"role": "user", "content": user_message}
-            ],
-            temperature=0.7,
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
             max_tokens=500,
-            extra_headers={
-                "HTTP-Referer": "https://yourapp.vercel.app",
-                "X-Title": "YAPS Content Generator"
-            }
+            system=prompt_template['system'],
+            messages=[
+                {"role": "user", "content": user_message}
+            ]
         )
         
-        generated_content = response.choices[0].message.content
-        if generated_content:
-            generated_content = generated_content.strip()
-        else:
-            generated_content = ""
+        generated_content = message.content[0].text.strip()
         
         scoring = analyze_yaps_score(generated_content)
         
@@ -204,7 +168,7 @@ JANGAN GUNAKAN BAHASA INGGRIS. Output hanya tweet bahasa Indonesia, tanpa penjel
             'project': project,
             'prompt_type': prompt_type,
             'scoring': scoring,
-            'model': 'Grok 2 (via OpenRouter)'
+            'model': 'Claude 3.5 Sonnet'
         })
         
     except Exception as e:
