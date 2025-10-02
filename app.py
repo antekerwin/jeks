@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 YAPS Content Generator - AI-powered content generator untuk maximize YAPS points
-Bahasa Indonesia - Powered by Claude AI
+Bahasa Indonesia
 """
 
 from flask import Flask, render_template, request, jsonify
 import os
-from anthropic import Anthropic
+from openai import OpenAI
 
 app = Flask(__name__)
 
@@ -30,7 +30,7 @@ PROMPT_TEMPLATES = {
     "data_driven": {
         "name": "📊 Analisis Data & Metrik",
         "description": "Konten berdasarkan data funding, TVL, pertumbuhan user",
-        "system": """Kamu adalah crypto analyst Indonesia yang ahli membuat konten Twitter data-driven untuk YAPS.
+        "system": """Anda adalah crypto analyst yang ahli membuat konten Twitter data-driven untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Data konkret, metrics, original insight
@@ -44,22 +44,20 @@ STRUKTUR:
 4. Thesis/prediction
 5. Question untuk drive discussion
 
-WAJIB:
-- 100% BAHASA INDONESIA
-- Max 1 tag atau tanpa tag
-- 150-280 karakter
-- Data/metrics spesifik
-
 HINDARI:
-- Bahasa Inggris
 - Keyword stuffing
-- Generic statements"""
+- Lebih dari 2 tags
+- Generic statements
+- Copy-paste news
+
+BAHASA: Indonesia (natural, tidak kaku)
+LENGTH: 150-280 karakter optimal"""
     },
     
     "competitive": {
         "name": "🎯 Positioning & Kompetitor",
         "description": "Analisis competitive landscape dan unique differentiation",
-        "system": """Kamu adalah crypto strategist Indonesia yang ahli analisis kompetitif untuk YAPS.
+        "system": """Anda adalah crypto strategist yang ahli analisis kompetitif untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Market structure understanding
@@ -69,48 +67,44 @@ ATURAN YAPS:
 STRUKTUR:
 1. Market context & kategori
 2. Competitive map (2-3 competitors)
-3. Unique differentiation
-4. Thesis siapa yang menang
-5. Question untuk community
-
-WAJIB:
-- 100% BAHASA INDONESIA
-- Max 1 tag atau tanpa tag
-- 150-280 karakter
-- Comparative insight
+3. Unique differentiation project ini
+4. Thesis siapa yang menang dan kenapa
+5. Question untuk community perspective
 
 HINDARI:
-- Bahasa Inggris
-- Shilling tanpa objektif"""
+- Shilling tanpa objektif
+- Excessive tags
+- Surface-level comparison
+
+BAHASA: Indonesia (professional tapi approachable)
+LENGTH: 150-280 karakter optimal"""
     },
     
     "thesis": {
         "name": "💡 Forward-Looking Thesis",
         "description": "Prediksi trend, market impact, contrarian take",
-        "system": """Kamu adalah crypto thought leader Indonesia yang ahli membuat thesis & prediction untuk YAPS.
+        "system": """Anda adalah crypto thought leader yang ahli membuat thesis & prediction untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Trend understanding
 - Smart Followers Engagement (50%): Provocative but backed thesis
-- Semantic Analysis (20%): Original thinking
+- Semantic Analysis (20%): Original thinking, contrarian OK
 
 STRUKTUR:
-1. Trend observation
-2. Positioning project
-3. Clear thesis/prediction
-4. Supporting reasoning
-5. Risk consideration
-6. Question untuk debate
-
-WAJIB:
-- 100% BAHASA INDONESIA
-- Max 1 tag atau tanpa tag
-- 150-280 karakter
-- Bold thesis
+1. Trend observation (apa yang shifting)
+2. Positioning project dalam trend ini
+3. Clear thesis/prediction (bold OK)
+4. 2-3 supporting reasoning
+5. Risk/consideration (show balanced thinking)
+6. Question untuk invite debate
 
 HINDARI:
-- Bahasa Inggris
-- Opinion tanpa backing"""
+- Opinion tanpa backing
+- Emotional statements
+- Hype without substance
+
+BAHASA: Indonesia (confident, analytical)
+LENGTH: 150-280 karakter optimal"""
     }
 }
 
@@ -135,31 +129,47 @@ def generate_content():
         if prompt_type not in PROMPT_TEMPLATES:
             return jsonify({'error': 'Prompt type tidak valid'}), 400
         
-        # CLAUDE AI VIA ANTHROPIC
-        client = Anthropic(api_key="sk-ant-api03-mFoT7JFGxZO9vTgF0wN0mKLHxqO9WvY7fVw_example")  # Ganti dengan API key Anda
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            return jsonify({
+                'error': 'OpenAI API Key belum diset',
+                'message': 'Silakan set OPENAI_API_KEY di Secrets'
+            }), 400
+        
+        client = OpenAI(api_key=api_key)
         
         prompt_template = PROMPT_TEMPLATES[prompt_type]
         
-        user_message = f"""Generate konten Twitter untuk:
+        user_message = f"""Generate konten Twitter untuk project: {project_name}
 
-Project: {project_name}
 Category: {project['category']}
-Mindshare: {project['mindshare']}
+Current Mindshare: {project['mindshare']}
 
-Tulis 1 tweet bahasa Indonesia yang optimized untuk YAPS.
+Buat 1 tweet berkualitas tinggi yang:
+1. Optimized untuk YAPS scoring (Crypto Relevance 30% + Smart Engagement 50% + Semantic 20%)
+2. Include data/metrics spesifik (bisa estimated berdasarkan mindshare dan category)
+3. Original analysis, bukan copy-paste
+4. Natural bahasa Indonesia
+5. Max 2 tags (atau tanpa tag lebih baik)
+6. 150-280 karakter
 
-Output format: Hanya tweet-nya saja, tanpa penjelasan."""
+Generate HANYA konten tweet-nya. Jangan include penjelasan atau metadata."""
 
-        message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=500,
-            system=prompt_template['system'],
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
             messages=[
+                {"role": "system", "content": prompt_template['system']},
                 {"role": "user", "content": user_message}
-            ]
+            ],
+            temperature=0.8,
+            max_tokens=500
         )
         
-        generated_content = message.content[0].text.strip()
+        generated_content = response.choices[0].message.content
+        if generated_content:
+            generated_content = generated_content.strip()
+        else:
+            generated_content = ""
         
         scoring = analyze_yaps_score(generated_content)
         
@@ -167,8 +177,7 @@ Output format: Hanya tweet-nya saja, tanpa penjelasan."""
             'content': generated_content,
             'project': project,
             'prompt_type': prompt_type,
-            'scoring': scoring,
-            'model': 'Claude 3.5 Sonnet'
+            'scoring': scoring
         })
         
     except Exception as e:
