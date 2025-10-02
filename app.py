@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 YAPS Content Generator - AI-powered content generator untuk maximize YAPS points
-Bahasa Indonesia
+Bahasa Indonesia - Powered by Grok AI
 """
 
 from flask import Flask, render_template, request, jsonify
@@ -30,7 +30,9 @@ PROMPT_TEMPLATES = {
     "data_driven": {
         "name": "📊 Analisis Data & Metrik",
         "description": "Konten berdasarkan data funding, TVL, pertumbuhan user",
-        "system": """Anda adalah crypto analyst yang ahli membuat konten Twitter data-driven untuk YAPS.
+        "system": """PENTING: Semua output WAJIB 100% BAHASA INDONESIA.
+
+Anda adalah crypto analyst yang ahli membuat konten Twitter data-driven untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Data konkret, metrics, original insight
@@ -49,6 +51,7 @@ HINDARI:
 - Lebih dari 2 tags
 - Generic statements
 - Copy-paste news
+- BAHASA INGGRIS (WAJIB INDONESIA!)
 
 BAHASA: Indonesia (natural, tidak kaku)
 LENGTH: 150-280 karakter optimal"""
@@ -57,7 +60,9 @@ LENGTH: 150-280 karakter optimal"""
     "competitive": {
         "name": "🎯 Positioning & Kompetitor",
         "description": "Analisis competitive landscape dan unique differentiation",
-        "system": """Anda adalah crypto strategist yang ahli analisis kompetitif untuk YAPS.
+        "system": """PENTING: Semua output WAJIB 100% BAHASA INDONESIA.
+
+Anda adalah crypto strategist yang ahli analisis kompetitif untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Market structure understanding
@@ -75,6 +80,7 @@ HINDARI:
 - Shilling tanpa objektif
 - Excessive tags
 - Surface-level comparison
+- BAHASA INGGRIS (WAJIB INDONESIA!)
 
 BAHASA: Indonesia (professional tapi approachable)
 LENGTH: 150-280 karakter optimal"""
@@ -83,7 +89,9 @@ LENGTH: 150-280 karakter optimal"""
     "thesis": {
         "name": "💡 Forward-Looking Thesis",
         "description": "Prediksi trend, market impact, contrarian take",
-        "system": """Anda adalah crypto thought leader yang ahli membuat thesis & prediction untuk YAPS.
+        "system": """PENTING: Semua output WAJIB 100% BAHASA INDONESIA.
+
+Anda adalah crypto thought leader yang ahli membuat thesis & prediction untuk YAPS.
 
 ATURAN YAPS:
 - Crypto Relevance (30%): Trend understanding
@@ -102,6 +110,7 @@ HINDARI:
 - Opinion tanpa backing
 - Emotional statements
 - Hype without substance
+- BAHASA INGGRIS (WAJIB INDONESIA!)
 
 BAHASA: Indonesia (confident, analytical)
 LENGTH: 150-280 karakter optimal"""
@@ -129,14 +138,13 @@ def generate_content():
         if prompt_type not in PROMPT_TEMPLATES:
             return jsonify({'error': 'Prompt type tidak valid'}), 400
         
-        api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key:
-            return jsonify({
-                'error': 'OpenAI API Key belum diset',
-                'message': 'Silakan set OPENAI_API_KEY di Secrets'
-            }), 400
+        # GROK AI VIA OPENROUTER
+        api_key = "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"
         
-        client = OpenAI(api_key=api_key)
+        client = OpenAI(
+            api_key=api_key,
+            base_url="https://openrouter.ai/api/v1"
+        )
         
         prompt_template = PROMPT_TEMPLATES[prompt_type]
         
@@ -145,24 +153,35 @@ def generate_content():
 Category: {project['category']}
 Current Mindshare: {project['mindshare']}
 
+WAJIB BAHASA INDONESIA 100%!
+
 Buat 1 tweet berkualitas tinggi yang:
 1. Optimized untuk YAPS scoring (Crypto Relevance 30% + Smart Engagement 50% + Semantic 20%)
 2. Include data/metrics spesifik (bisa estimated berdasarkan mindshare dan category)
 3. Original analysis, bukan copy-paste
-4. Natural bahasa Indonesia
-5. Max 2 tags (atau tanpa tag lebih baik)
+4. Natural bahasa Indonesia (JANGAN BAHASA INGGRIS!)
+5. Max 1-2 tags (atau tanpa tag lebih baik)
 6. 150-280 karakter
 
-Generate HANYA konten tweet-nya. Jangan include penjelasan atau metadata."""
+Format: Langsung tulis tweet dalam bahasa Indonesia. Jangan ada penjelasan atau metadata.
+
+Contoh style yang benar:
+"LIMITLESS dominasi AI Agents dengan 7% mindshare. Funding AI agent protocols naik 340% Q4 2024. Prediksi: category leader bisa grab 15% dalam 6 bulan. Menurut kalian, siapa kompetitor terdekat?"
+
+Generate HANYA konten tweet-nya."""
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="x-ai/grok-2-1212",
             messages=[
                 {"role": "system", "content": prompt_template['system']},
                 {"role": "user", "content": user_message}
             ],
             temperature=0.8,
-            max_tokens=500
+            max_tokens=500,
+            extra_headers={
+                "HTTP-Referer": "https://yourapp.vercel.app",
+                "X-Title": "YAPS Content Generator"
+            }
         )
         
         generated_content = response.choices[0].message.content
@@ -177,7 +196,8 @@ Generate HANYA konten tweet-nya. Jangan include penjelasan atau metadata."""
             'content': generated_content,
             'project': project,
             'prompt_type': prompt_type,
-            'scoring': scoring
+            'scoring': scoring,
+            'model': 'Grok 2 (via OpenRouter)'
         })
         
     except Exception as e:
