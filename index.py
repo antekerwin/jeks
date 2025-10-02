@@ -35,6 +35,7 @@ def get_category(project):
     categories = {
         "LIMITLESS": "AI Tools", "SENTIENT": "AI Agents", "POLYMARKET": "Prediction Markets",
         "MONAD": "Layer 1", "BASE": "Layer 2", "OPENSEA": "NFT Marketplace",
+        "EVERLYN": "AI Assistant", "MET": "DeFi", "MOMENTUM": "DeFi"
     }
     return categories.get(project, "DeFi")
 
@@ -50,6 +51,45 @@ def home():
     projects = fetch_kaito_projects()
     return render_template('index.html', projects=projects, prompts=PROMPTS)
 
+def translate_to_indonesian(text, api_key):
+    """Force translate ke bahasa Indonesia jika masih Inggris"""
+    # Check if already Indonesian
+    indonesian_words = ['yang', 'dengan', 'ini', 'untuk', 'dari', 'adalah', 'pada', 'dalam', 'akan', 'menurut', 'kalian', 'kenapa', 'bagaimana', 'naik', 'turun']
+    if any(word in text.lower() for word in indonesian_words):
+        return text
+    
+    # Translate using OpenRouter
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://jeks-delta.vercel.app",
+        "X-Title": "YAPS Translator"
+    }
+    
+    payload = {
+        "model": "x-ai/grok-2-1212",
+        "messages": [
+            {"role": "system", "content": "Translate to natural Indonesian. Keep crypto terms. No explanation, just translation."},
+            {"role": "user", "content": f"Translate to Indonesian:\n\n{text}"}
+        ],
+        "temperature": 0.3,
+        "max_tokens": 300
+    }
+    
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=20
+        )
+        if response.status_code == 200:
+            return response.json()['choices'][0]['message']['content'].strip()
+    except:
+        pass
+    
+    return text
+
 @app.route('/generate', methods=['POST'])
 def generate():
     try:
@@ -58,42 +98,42 @@ def generate():
         prompt_type = data.get('prompt_type')
         custom_request = data.get('custom_request', '')
         
-        # GROK AI VIA OPENROUTER (GANTI DARI GROQ)
         api_key = "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"
         
-        # SYSTEM PROMPT YANG ENFORCE BAHASA INDONESIA
-        system_prompt = """PENTING: Kamu WAJIB menulis 100% dalam BAHASA INDONESIA.
+        # ULTRA STRONG INDONESIAN PROMPT
+        system_prompt = """Kamu HARUS menulis HANYA dalam bahasa Indonesia.
 
-Kamu adalah crypto analyst Indonesia yang ahli membuat konten Twitter untuk YAPS.
+Contoh yang BENAR:
+"LIMITLESS dominasi AI Agents. Funding naik 340% Q4 2024, TVL $120M. Prediksi: bisa grab 15% mindshare dalam 6 bulan. Menurut kalian, siapa kompetitor terdekat?"
 
-ATURAN WAJIB:
-- 100% BAHASA INDONESIA (gunakan kata: dominasi, naik, turun, grab, menurut kalian, siapa, kenapa, bagaimana)
-- Include data/metrics spesifik dengan angka
-- Max 1 tag atau tanpa tag
-- 150-280 karakter optimal
-- Ada pertanyaan untuk engagement
+Contoh yang SALAH (jangan ikuti):
+"LIMITLESS dominates AI Agents. Funding up 340% Q4 2024."
 
-CONTOH FORMAT YANG BENAR:
-"[Project] dominasi [category] dengan mindshare tinggi. [Metric] naik [%], [data point] mencapai [angka]. Prediksi: [thesis]. Menurut kalian [question]?"
+Gunakan kata Indonesia: dominasi, naik, turun, dengan, untuk, menurut kalian, siapa, kenapa, bagaimana."""
 
-JANGAN gunakan bahasa Inggris. Output hanya tweet bahasa Indonesia."""
-
-        if prompt_type == "custom" and custom_request:
-            user_prompt = f"""PROJECT: {project}
-CATEGORY: {get_category(project.upper())}
-
-Custom request: {custom_request}
-
-Buat 1 tweet BAHASA INDONESIA yang optimized untuk YAPS.
-Output: Hanya tweet, tanpa penjelasan."""
-        else:
-            user_prompt = f"""PROJECT: {project}
-CATEGORY: {get_category(project.upper())}
-
-Buat 1 tweet BAHASA INDONESIA dengan data/metrics yang optimized untuk YAPS.
-Output: Hanya tweet, tanpa penjelasan."""
+        category = get_category(project.upper())
         
-        # REQUEST KE GROK AI (OPENROUTER)
+        if prompt_type == "custom" and custom_request:
+            user_prompt = f"""Project: {project} ({category})
+
+Request: {custom_request}
+
+Tulis tweet bahasa Indonesia untuk YAPS (150-280 char, data/metrics, ada pertanyaan).
+
+Contoh format:
+"{project} [analisis] dengan [data]. [Metric] naik [%]. Prediksi: [thesis]. Menurut kalian [question]?"
+
+Tulis HANYA tweet Indonesia:"""
+        else:
+            user_prompt = f"""Project: {project} ({category})
+
+Tulis tweet bahasa Indonesia untuk YAPS (150-280 char, data/metrics, ada pertanyaan).
+
+Contoh format:
+"{project} [analisis] dengan [data]. [Metric] naik [%]. Prediksi: [thesis]. Menurut kalian [question]?"
+
+Tulis HANYA tweet Indonesia:"""
+        
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -102,12 +142,12 @@ Output: Hanya tweet, tanpa penjelasan."""
         }
         
         payload = {
-            "model": "x-ai/grok-2-1212",  # Grok 2
+            "model": "x-ai/grok-2-1212",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            "temperature": random.uniform(0.7, 0.85),
+            "temperature": 0.75,
             "max_tokens": 300
         }
         
@@ -123,12 +163,19 @@ Output: Hanya tweet, tanpa penjelasan."""
         
         content = response.json()['choices'][0]['message']['content'].strip()
         
-        # SCORING (TETAP SAMA)
+        # FORCE TRANSLATION jika masih Inggris
+        content = translate_to_indonesian(content, api_key)
+        
+        # Remove hashtags (YAPS rule: max 1-2 tags atau tanpa tag lebih baik)
+        content = re.sub(r'#\w+\s*', '', content).strip()
+        
+        # SCORING
         char_count = len(content)
         optimal_length = 150 <= char_count <= 280
         has_data = any(char.isdigit() for char in content)
         has_question = '?' in content
-        quality = 7 + (1 if optimal_length else 0) + (1 if has_data else 0) + (1 if has_question else 0)
+        is_indonesian = any(word in content.lower() for word in ['yang', 'dengan', 'untuk', 'menurut', 'kalian', 'naik', 'turun'])
+        quality = 7 + (1 if optimal_length else 0) + (1 if has_data else 0) + (1 if has_question else 0) + (1 if is_indonesian else 0)
         
         scoring = {
             "crypto_relevance": quality,
@@ -140,6 +187,7 @@ Output: Hanya tweet, tanpa penjelasan."""
                 f"📏 {char_count} chars" + (" ✅" if optimal_length else " ⚠️"),
                 f"📊 Data: {'✅' if has_data else '⚠️'}",
                 f"💬 Engage: {'✅' if has_question else '⚠️'}",
+                f"🇮🇩 Bahasa: {'✅ Indonesia' if is_indonesian else '⚠️ Inggris'}",
                 f"🎯 Est. YAPS: ~{int(quality*0.7*75)} pts",
                 f"🤖 Model: Grok 2 AI"
             ]
@@ -160,7 +208,6 @@ def analyze_content():
         if not content:
             return jsonify({"error": "Content required"}), 400
         
-        # 1. CONTENT OPTIMIZATION (30% weight)
         char_count = len(content)
         optimal_length = 150 <= char_count <= 280
         min_length = char_count >= 50
@@ -183,10 +230,9 @@ def analyze_content():
         if is_original: content_opt_score += 2
         content_opt_score = min(10, content_opt_score)
         
-        # 2. ENGAGEMENT STRATEGY (50% weight)
         has_question = '?' in content
         has_data = any(char.isdigit() for char in content)
-        has_cta = any(word in content_lower for word in ['what', 'how', 'why', 'thoughts', 'think', 'opinion'])
+        has_cta = any(word in content_lower for word in ['what', 'how', 'why', 'thoughts', 'think', 'opinion', 'menurut', 'kalian', 'kenapa', 'bagaimana'])
         
         engagement_score = 0
         if has_question: engagement_score += 4
@@ -194,7 +240,6 @@ def analyze_content():
         if has_cta: engagement_score += 3
         engagement_score = min(10, engagement_score)
         
-        # 3. CONTENT QUALITY (20% weight)
         has_metrics = bool(re.search(r'\d+[%$MBK]|\$\d+|\d+x', content))
         has_analysis = len(content.split()) > 15
         no_spam_pattern = not bool(re.search(r'(.)\1{3,}', content))
@@ -209,70 +254,41 @@ def analyze_content():
         if 'tvl' in content_lower or 'revenue' in content_lower: content_types.append("Protocol analysis ✅")
         if has_metrics and ('vs' in content_lower or 'compare' in content_lower): content_types.append("Comparison ✅")
         if 'airdrop' in content_lower and 'risk' in content_lower: content_types.append("Airdrop strategy ✅")
-        if re.search(r'thread|1/', content_lower): content_types.append("Thread format ✅")
         
         penalties = []
-        if keyword_stuffing: penalties.append("⚠️ Keyword stuffing detected")
-        if 'kaito' in content_lower and '@' in content: penalties.append("⚠️ Avoid tagging Kaito")
+        if keyword_stuffing: penalties.append("⚠️ Keyword stuffing")
+        if content.count('#') > 2: penalties.append("⚠️ Terlalu banyak hashtags (max 1-2)")
         if generic_count >= 3: penalties.append("⚠️ Too many generic phrases")
         if char_count < 50: penalties.append("⚠️ Too short (min 50 chars)")
-        if not has_crypto_focus: penalties.append("⚠️ No crypto-specific topic")
         
         suggestions = []
         if not has_question: suggestions.append("💡 Add question untuk drive discussion")
-        if not has_data: suggestions.append("💡 Include metrics/data untuk credibility")
-        if char_count < 150: suggestions.append("💡 Expand to 150-280 chars (optimal)")
-        if not content_types: suggestions.append("💡 Try protocol deep-dive atau comparison format")
-        if not is_original: suggestions.append("💡 Add personal analysis/unique insight")
+        if not has_data: suggestions.append("💡 Include metrics/data")
+        if char_count < 150: suggestions.append("💡 Expand to 150-280 chars")
+        if content.count('#') > 2: suggestions.append("💡 Kurangi hashtags (max 1-2 atau tanpa tag)")
         
         total_score = (content_opt_score * 0.3) + (engagement_score * 0.5) + (quality_score * 0.2)
         total_score = round(total_score, 1)
-        
         estimated_yaps = int(total_score * 0.7 * 75)
         
         if total_score >= 9:
-            rating = "⭐⭐⭐⭐⭐ Excellent - High YAPS potential!"
+            rating = "⭐⭐⭐⭐⭐ Excellent"
         elif total_score >= 7:
-            rating = "⭐⭐⭐⭐ Good - Solid content"
+            rating = "⭐⭐⭐⭐ Good"
         elif total_score >= 5:
-            rating = "⭐⭐⭐ Fair - Needs improvement"
+            rating = "⭐⭐⭐ Fair"
         else:
-            rating = "⭐⭐ Poor - Optimize further"
+            rating = "⭐⭐ Poor"
         
         return jsonify({
             "success": True,
             "analysis": {
-                "content_optimization": {
-                    "score": content_opt_score,
-                    "weight": "30%",
-                    "details": {
-                        "length": f"{char_count} chars" + (" ✅ optimal" if optimal_length else " ⚠️ adjust to 150-280"),
-                        "crypto_focus": "✅ Yes" if has_crypto_focus else "❌ No crypto topic",
-                        "originality": "✅ Original" if is_original else "⚠️ Too generic",
-                        "keywords": f"{keyword_count} keywords" + (" ✅" if 1 <= keyword_count <= 3 else " ⚠️")
-                    }
-                },
-                "engagement_strategy": {
-                    "score": engagement_score,
-                    "weight": "50%",
-                    "details": {
-                        "question": "✅ Yes" if has_question else "❌ No",
-                        "data_driven": "✅ Yes" if has_data else "❌ No data/metrics",
-                        "cta": "✅ Yes" if has_cta else "❌ No call-to-action"
-                    }
-                },
-                "content_quality": {
-                    "score": quality_score,
-                    "weight": "20%",
-                    "details": {
-                        "metrics": "✅ Includes metrics" if has_metrics else "❌ No specific metrics",
-                        "depth": "✅ Detailed analysis" if has_analysis else "⚠️ Surface-level",
-                        "spam_check": "✅ Clean" if no_spam_pattern else "⚠️ Spam pattern detected"
-                    }
-                },
-                "content_types": content_types if content_types else ["ℹ️ Standard tweet format"],
-                "penalties": penalties if penalties else ["✅ No penalties detected"],
-                "suggestions": suggestions if suggestions else ["✅ Content is well-optimized!"],
+                "content_optimization": {"score": content_opt_score, "weight": "30%"},
+                "engagement_strategy": {"score": engagement_score, "weight": "50%"},
+                "content_quality": {"score": quality_score, "weight": "20%"},
+                "content_types": content_types if content_types else ["ℹ️ Standard tweet"],
+                "penalties": penalties if penalties else ["✅ No penalties"],
+                "suggestions": suggestions if suggestions else ["✅ Well-optimized!"],
                 "total_score": total_score,
                 "estimated_yaps": estimated_yaps,
                 "rating": rating
